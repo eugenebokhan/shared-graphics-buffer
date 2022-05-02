@@ -16,7 +16,11 @@ let package = Package(
     dependencies: [
         .package(
             url: "https://github.com/eugenebokhan/metal-tools.git",
-            .upToNextMajor(from: "1.0.0")
+            .exact("1.0.4")
+        ),
+        .package(
+            url: "https://github.com/eugenebokhan/core-video-tools.git",
+            .exact("0.0.1")
         )
     ],
     targets: [
@@ -26,6 +30,10 @@ let package = Package(
                 .product(
                     name: "MetalTools",
                     package: "metal-tools"
+                ),
+                .product(
+                    name: "CoreVideoTools",
+                    package: "core-video-tools"
                 )
             ]
         )
