@@ -1,5 +1,6 @@
 import Accelerate
 import MetalTools
+import CoreVideoTools
 
 @available(iOS 12.0, macCatalyst 14.0, macOS 11.0, *)
 final public class MTLSharedGraphicsBuffer {
@@ -55,8 +56,8 @@ final public class MTLSharedGraphicsBuffer {
     public let pixelBuffer: CVPixelBuffer
     public let buffer: MTLBuffer
     public private(set) var vImageBuffer: vImage_Buffer
-    public let pixelFormat: MTLPixelFormat
-    public let cvPixelFormat: OSType
+    public let mtlPixelFormat: MTLPixelFormat
+    public let cvPixelFormat: CVPixelFormat
     private var allocationPointer: UnsafeMutableRawPointer?
     
     // MARK: - Init
@@ -68,16 +69,19 @@ final public class MTLSharedGraphicsBuffer {
     ///   - height: texture height.
     ///   - pixelFormat: texture pixel format.
     ///   - usage: texture usage.
-    public init(context: MTLContext,
-                width: Int,
-                height: Int,
-                pixelFormat: PixelFormat,
-                usage: MTLTextureUsage = [.shaderRead, .shaderWrite, .renderTarget]) throws {
+    public init(
+        context: MTLContext,
+        width: Int,
+        height: Int,
+        pixelFormat: PixelFormat,
+        usage: MTLTextureUsage = [.shaderRead, .shaderWrite, .renderTarget]
+    ) throws {
         let pixelFormat = pixelFormat.mtlPixelFormat
-        guard let cvPixelFormat = pixelFormat.compatibleCVPixelFormat,
-              let pixelFormatSize = pixelFormat.size,
+        guard let pixelFormatSize = pixelFormat.size,
               let bitsPerComponent = pixelFormat.bitsPerComponent
         else { throw Error.unsupportedPixelFormat }
+        
+        let cvPixelFormat = pixelFormat.compatibleCVPixelFormat
 
         let textureDescriptor = MTLTextureDescriptor()
         let bufferStorageMode: MTLResourceOptions
@@ -105,15 +109,19 @@ final public class MTLSharedGraphicsBuffer {
         ///
         /// Get page aligned texture size.
         /// It might be more than raw texture size, but we'll alloccate memory in reserve.
-        let pageAlignedTextureSize = alignUp(size: heapTextureSizeAndAlign.size,
-                                             align: pageSize)
+        let pageAlignedTextureSize = alignUp(
+            size: heapTextureSizeAndAlign.size,
+            align: pageSize
+        )
 
         /// Allocate `pageAlignedTextureSize` bytes and place the
         /// address of the allocated memory in `self.allocationPointer`.
         /// The address of the allocated memory will be a multiple of `pageSize` which is hardware friendly.
-        posix_memalign(&self.allocationPointer,
-                       pageSize,
-                       heapTextureSizeAndAlign.size)
+        posix_memalign(
+            &self.allocationPointer,
+            pageSize,
+            heapTextureSizeAndAlign.size
+        )
 
         // MARK: - Calculate bytes per row.
         /// Minimum texture alignment.
@@ -127,11 +135,13 @@ final public class MTLSharedGraphicsBuffer {
         ///
         /// Get the minimum data alignment required for buffer's contents,
         /// by passing `kvImageNoAllocate` to `vImage` constructor.
-        let vImageBufferAlignment = vImageBuffer_Init(&self.vImageBuffer,
-                                                      vImagePixelCount(height),
-                                                      vImagePixelCount(width),
-                                                      UInt32(bitsPerComponent),
-                                                      vImage_Flags(kvImageNoAllocate))
+        let vImageBufferAlignment = vImageBuffer_Init(
+            &self.vImageBuffer,
+            vImagePixelCount(height),
+            vImagePixelCount(width),
+            UInt32(bitsPerComponent),
+            vImage_Flags(kvImageNoAllocate)
+        )
 
         /// Pixel row alignment.
         ///
@@ -155,23 +165,26 @@ final public class MTLSharedGraphicsBuffer {
         ] as CFDictionary
 
         var trialPixelBuffer: CVPixelBuffer?
-        guard let buffer = context.buffer(bytesNoCopy: allocationPointer,
-                                          length: pageAlignedTextureSize,
-                                          options: bufferStorageMode,
-                                          deallocator: nil),
-              let texture = buffer.makeTexture(descriptor: textureDescriptor,
-                                               offset: 0,
-                                               bytesPerRow: bytesPerRow),
-                kCVReturnSuccess == CVPixelBufferCreateWithBytes(nil,
-                                                                 width,
-                                                                 height,
-                                                                 cvPixelFormat,
-                                                                 allocationPointer,
-                                                                 bytesPerRow,
-                                                                 nil, nil,
-                                                                 pixelBufferAttributes,
-                                                                 &trialPixelBuffer),
-                let pixelBuffer = trialPixelBuffer
+        guard let buffer = context.buffer(
+            bytesNoCopy: allocationPointer,
+            length: pageAlignedTextureSize,
+            options: bufferStorageMode,
+            deallocator: nil
+        ), let texture = buffer.makeTexture(
+            descriptor: textureDescriptor,
+            offset: 0,
+            bytesPerRow: bytesPerRow
+        ), kCVReturnSuccess == CVPixelBufferCreateWithBytes(
+            nil,
+            width,
+            height,
+            cvPixelFormat.rawValue,
+            allocationPointer,
+            bytesPerRow,
+            nil, nil,
+            pixelBufferAttributes,
+            &trialPixelBuffer
+        ), let pixelBuffer = trialPixelBuffer
         else { throw Error.initializationFailed }
 
         self.vImageBuffer.rowBytes = bytesPerRow
@@ -179,7 +192,7 @@ final public class MTLSharedGraphicsBuffer {
         self.buffer = buffer
         self.texture = texture
         self.pixelBuffer = pixelBuffer
-        self.pixelFormat = pixelFormat
+        self.mtlPixelFormat = pixelFormat
         self.cvPixelFormat = cvPixelFormat
     }
 }
