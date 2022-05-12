@@ -15,48 +15,50 @@ public protocol GraphicsDataProvider {
 }
 
 public extension GraphicsDataProvider {
-    func vImageBuffer() throws -> vImage_Buffer {
-        return try self.graphicsData().vImageBuffer()
+    func vImageBufferView() throws -> vImage_Buffer {
+        return try self.graphicsData().vImageBufferView()
     }
     
-    func cvPixelBuffer(cvPixelFormat: CVPixelFormat) throws -> CVPixelBuffer {
-        return try self.graphicsData().cvPixelBuffer(cvPixelFormat: cvPixelFormat)
+    func cvPixelBufferView(cvPixelFormat: CVPixelFormat) throws -> CVPixelBuffer {
+        return try self.graphicsData().cvPixelBufferView(cvPixelFormat: cvPixelFormat)
     }
     
+    #if arch(arm64)
     @available(iOS 14.0, macCatalyst 14.0, *)
-    func mlMultiArray(
+    func mlMultiArrayView(
         shape: [Int],
         dataType: MLMultiArrayDataType
     ) throws -> MLMultiArray {
-        return try self.graphicsData().mlMultiArray(
+        return try self.graphicsData().mlMultiArrayView(
             shape: shape,
             dataType: dataType
         )
     }
     
     @available(iOS 14.0, macCatalyst 14.0, *)
-    func mlMultiArray(
+    func mlMultiArrayView(
         shape: [Int],
         strides: [Int],
         dataType: MLMultiArrayDataType
     ) throws -> MLMultiArray {
-        return try self.graphicsData().mlMultiArray(
+        return try self.graphicsData().mlMultiArrayView(
             shape: shape,
             strides: strides,
             dataType: dataType
         )
     }
+    #endif
     
-    func mtlBuffer(device: MTLDevice) throws -> MTLBuffer {
-        return try self.graphicsData().mtlBuffer(device: device)
+    func mtlBufferView(device: MTLDevice) throws -> MTLBuffer {
+        return try self.graphicsData().mtlBufferView(device: device)
     }
     
-    func mtlTexture(
+    func mtlTextureView(
         device: MTLDevice,
         pixelFormat: MTLPixelFormat,
         usage: MTLTextureUsage = []
     ) throws -> MTLTexture {
-        return try self.graphicsData().mtlTexture(
+        return try self.graphicsData().mtlTextureView(
             device: device,
             pixelFormat: pixelFormat,
             usage: usage

@@ -1,7 +1,7 @@
-@_exported import CoreVideoTools
-@_exported import MetalTools
-@_exported import Accelerate
-@_exported import CoreML
+import CoreVideoTools
+import MetalTools
+import Accelerate
+import CoreML
 
 public struct GraphicsData {
     
@@ -15,7 +15,7 @@ public struct GraphicsData {
     public let bytesPerRow: UInt
     public var dataLength: UInt { self.bytesPerRow * self.height }
     
-    public func vImageBuffer() -> vImage_Buffer {
+    public func vImageBufferView() -> vImage_Buffer {
         return .init(
             data: self.baseAddress,
             height: vImagePixelCount(self.height),
@@ -24,7 +24,7 @@ public struct GraphicsData {
         )
     }
     
-    public func cvPixelBuffer(cvPixelFormat: CVPixelFormat) throws -> CVPixelBuffer {
+    public func cvPixelBufferView(cvPixelFormat: CVPixelFormat) throws -> CVPixelBuffer {
         return try .create(
             width: Int(self.width),
             height: Int(self.height),
@@ -34,8 +34,9 @@ public struct GraphicsData {
         )
     }
     
+    #if arch(arm64)
     @available(iOS 14.0, macCatalyst 14.0, *)
-    public func mlMultiArray(
+    public func mlMultiArrayView(
         shape: [Int],
         dataType: MLMultiArrayDataType
     ) throws -> MLMultiArray {
@@ -55,7 +56,7 @@ public struct GraphicsData {
     }
     
     @available(iOS 14.0, macCatalyst 14.0, *)
-    public func mlMultiArray(
+    public func mlMultiArrayView(
         shape: [Int],
         strides: [Int],
         dataType: MLMultiArrayDataType
@@ -70,8 +71,9 @@ public struct GraphicsData {
             strides: strides.map(NSNumber.init(value:))
         )
     }
+    #endif
     
-    public func mtlBuffer(device: MTLDevice) throws -> MTLBuffer {
+    public func mtlBufferView(device: MTLDevice) throws -> MTLBuffer {
         guard let buffer = device.makeBuffer(
             bytesNoCopy: self.baseAddress,
             length: Int(self.bytesPerRow * self.height),
@@ -82,12 +84,12 @@ public struct GraphicsData {
         return buffer
     }
     
-    public func mtlTexture(
+    public func mtlTextureView(
         device: MTLDevice,
         pixelFormat: MTLPixelFormat,
         usage: MTLTextureUsage = []
     ) throws -> MTLTexture {
-        let buffer = try self.mtlBuffer(device: device)
+        let buffer = try self.mtlBufferView(device: device)
         
         let descriptor = MTLTextureDescriptor()
         descriptor.width = Int(self.width)

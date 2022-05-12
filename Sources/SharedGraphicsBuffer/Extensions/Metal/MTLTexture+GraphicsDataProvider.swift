@@ -1,4 +1,7 @@
 import MetalTools
+import Accelerate
+import CoreVideoTools
+import CoreML
 
 public extension MTLTexture {
     func graphicsData() throws -> GraphicsData {
@@ -13,36 +16,38 @@ public extension MTLTexture {
         )
     }
     
-    func vImageBuffer() throws -> vImage_Buffer {
-        return try self.graphicsData().vImageBuffer()
+    func vImageBufferView() throws -> vImage_Buffer {
+        return try self.graphicsData().vImageBufferView()
     }
     
-    func cvPixelBuffer(cvPixelFormat: CVPixelFormat) throws -> CVPixelBuffer {
-        return try self.graphicsData().cvPixelBuffer(cvPixelFormat: cvPixelFormat)
+    func cvPixelBufferView(cvPixelFormat: CVPixelFormat) throws -> CVPixelBuffer {
+        return try self.graphicsData().cvPixelBufferView(cvPixelFormat: cvPixelFormat)
     }
     
+    #if arch(arm64)
     @available(iOS 14.0, macCatalyst 14.0, *)
-    func mlMultiArray(
+    func mlMultiArrayView(
         shape: [Int],
         dataType: MLMultiArrayDataType
     ) throws -> MLMultiArray {
-        return try self.graphicsData().mlMultiArray(
+        return try self.graphicsData().mlMultiArrayView(
             shape: shape,
             dataType: dataType
         )
     }
     
     @available(iOS 14.0, macCatalyst 14.0, *)
-    func mlMultiArray(
+    func mlMultiArrayView(
         shape: [Int],
         strides: [Int],
         dataType: MLMultiArrayDataType
     ) throws -> MLMultiArray {
-        return try self.graphicsData().mlMultiArray(
+        return try self.graphicsData().mlMultiArrayView(
             shape: shape,
             strides: strides,
             dataType: dataType
         )
     }
+    #endif
 
 }
